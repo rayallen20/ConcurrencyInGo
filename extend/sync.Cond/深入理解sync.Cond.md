@@ -185,7 +185,7 @@ type notifyList struct {
 - `lock mutex`并不是GO提供开发者使用的`sync.Mutex`,而是系统内部运行时实现的一个简单版本的互斥锁
 - `head`和`tail`看名字猜测就觉得和链表很像.这里就是维护了阻塞在当前`sync.Cond`上的goroutine构成的链表
 
-![sync.Cond大致结构](../../../img/extend/sync.Cond大致结构.jpg)
+![sync.Cond大致结构](../../img/extend/sync.Cond大致结构.jpg)
 
 ### 2.2 操作方法
 
