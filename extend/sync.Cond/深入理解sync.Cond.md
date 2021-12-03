@@ -185,7 +185,7 @@ type notifyList struct {
 - `lock mutex`并不是GO提供开发者使用的`sync.Mutex`,而是系统内部运行时实现的一个简单版本的互斥锁
 - `head`和`tail`看名字猜测就觉得和链表很像.这里就是维护了阻塞在当前`sync.Cond`上的goroutine构成的链表
 
-![sync.Cond大致结构](../../img/extend/sync.Cond大致结构.jpg)
+![sync.Cond大致结构](../../img/extend/syncCond大致结构.jpg)
 
 ### 2.2 操作方法
 
@@ -212,22 +212,23 @@ func (c *Cond) Wait() {
 
 从`Wait()`方法源码很容易看出它的操作大概分了5步:
 
-1. 调用`copyChecker.check()`保证`sync.Cond`不会被拷贝
-2. 每次调用`Wait()`会将`sync.Cond.notifyList.wait`属性进行+1操作,这也是它能够确保我们例子中`FIFO`的基石.根据`wait`来判断goroutine等待的顺序
+- 1. 调用`copyChecker.check()`保证`sync.Cond`不会被拷贝
+- 2. 每次调用`Wait()`会将`sync.Cond.notifyList.wait`属性进行+1操作,这也是它能够确保我们例子中`FIFO`的基石.根据`wait`来判断goroutine等待的顺序
+- 3. 调用`c.L.Unlock()`因为当前goroutine即将被gopark(携程切换),让出锁给其他goroutine避免死锁
+- 4. 调用`runtime_notifyListWait(&c.notify, t)`
 
-	```go
+	
+```go
 	//go:linkname notifyListAdd sync.runtime_notifyListAdd
 func notifyListAdd(l *notifyList) uint32 {
 	// This may be called concurrently, for example, when called from
 	// sync.Cond.Wait while holding a RWMutex in read mode.
 	return atomic.Xadd(&l.wait, 1) - 1
 }
-	```
-3. 调用`c.L.Unlock()`因为当前goroutine即将被gopark(携程切换),让出锁给其他goroutine避免死锁
-4. 调用`runtime_notifyListWait(&c.notify, t)`
+```
 
-	```go
-	// notifyListWait waits for a notification. If one has been sent since
+```go
+// notifyListWait waits for a notification. If one has been sent since
 // notifyListAdd was called, it returns immediately. Otherwise, it blocks.
 //go:linkname notifyListWait sync.runtime_notifyListWait
 func notifyListWait(l *notifyList, t uint32) {
@@ -271,14 +272,14 @@ func notifyListWait(l *notifyList, t uint32) {
 	// goroutine被唤醒后释放sudog
 	releaseSudog(s)
 }
-	```
+```
 	
-	实际上主要完成了2个任务:
+实际上主要完成了2个任务:
 	
-	1. 将当前goroutine插入到notifyList链表中
-	2. 调用gopark将当前goroutine挂起
+1. 将当前goroutine插入到notifyList链表中
+2. 调用gopark将当前goroutine挂起
 
-5. 当其他goroutine调用了`Signal`或`Broadcast`方法时,当前goroutine被唤醒后再次尝试获得锁
+- 5. 当其他goroutine调用了`Signal`或`Broadcast`方法时,当前goroutine被唤醒后再次尝试获得锁
 
 `Signal`操作:
 
