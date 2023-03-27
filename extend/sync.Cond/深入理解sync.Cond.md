@@ -214,7 +214,7 @@ func (c *Cond) Wait() {
 
 - 1. 调用`copyChecker.check()`保证`sync.Cond`不会被拷贝
 - 2. 每次调用`Wait()`会将`sync.Cond.notifyList.wait`属性进行+1操作,这也是它能够确保我们例子中`FIFO`的基石.根据`wait`来判断goroutine等待的顺序
-- 3. 调用`c.L.Unlock()`因为当前goroutine即将被gopark(携程切换),让出锁给其他goroutine避免死锁
+- 3. 调用`c.L.Unlock()`因为当前goroutine即将被gopark(协程切换),让出锁给其他goroutine避免死锁
 - 4. 调用`runtime_notifyListWait(&c.notify, t)`
 
 	

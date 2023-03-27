@@ -43,7 +43,7 @@ func main() {
 	defer tw.Flush()
 
 	var rwMutex sync.RWMutex
-	fmt.Fprintf(tw, "Readers\tMutex\tRWMutex\n")
+	fmt.Fprintf(tw, "Readers\tRWMutex\tMutex\n")
 
 	for i := 0; i < 20; i++ {
 		count := int(math.Pow(2, float64(i)))
@@ -53,6 +53,6 @@ func main() {
 			count,
 			test(count, &rwMutex, rwMutex.RLocker()),
 			test(count, &rwMutex, &rwMutex),
-			)
+		)
 	}
 }
