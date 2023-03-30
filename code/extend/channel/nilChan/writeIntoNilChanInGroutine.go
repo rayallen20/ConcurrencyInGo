@@ -10,16 +10,13 @@ func main() {
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
-		defer close(intStream)
+		defer wg.Done()
 		intStream <- 1
-		wg.Done()
+		close(intStream)
 	}()
 
 	go func() {
-		integer, ok := <-intStream
-		if !ok {
-			fmt.Printf("intStream has been closed\n")
-		} else {
+		for integer := range intStream {
 			fmt.Printf("receive %d from intStream\n", integer)
 		}
 		wg.Done()
