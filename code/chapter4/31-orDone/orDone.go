@@ -20,8 +20,6 @@ func main() {
 					select {
 					case valueStream <- v:
 					case <-done:
-						// 此处也应该有个return
-						return
 					}
 				}
 			}
