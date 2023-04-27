@@ -28,25 +28,6 @@ func main() {
 		return valueStream
 	}
 
-	myFunc := func(done <-chan interface{}, c <-chan interface{}) <-chan interface{} {
-		valueStream := make(chan interface{})
-
-		go func() {
-			defer close(valueStream)
-
-			for {
-				select {
-				case <-done:
-					return
-				case v := <-c:
-					// 使用从管道中读取到的值做某些逻辑
-				}
-			}
-		}()
-
-		return valueStream
-	}
-
 	done := make(chan interface{})
 	defer close(done)
 	myChan := make(chan interface{})
