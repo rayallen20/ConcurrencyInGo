@@ -1,21 +1,22 @@
 package main
 
 func main() {
-	take := func(done <-chan interface{}, valueStream <-chan interface{}, num int) <-chan interface{} {
-		takeStream := make(chan interface{})
+}
 
-		go func() {
-			defer close(takeStream)
+func take(done <-chan interface{}, valueStream <-chan interface{}, num int) <-chan interface{} {
+	takeStream := make(chan interface{})
 
-			for i := 0; i < num; i++ {
-				select {
-				case <-done:
-					return
-				case takeStream <- <-valueStream:
-				}
+	go func() {
+		defer close(takeStream)
+
+		for i := 0; i < num; i++ {
+			select {
+			case <-done:
+				return
+			case takeStream <- <-valueStream:
 			}
-		}()
+		}
+	}()
 
-		return takeStream
-	}
+	return takeStream
 }
