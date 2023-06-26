@@ -6,25 +6,6 @@ import (
 )
 
 func main() {
-	doWork := func(done <-chan interface{}, stringStream <-chan string) <-chan interface{} {
-		terminated := make(chan interface{})
-		go func() {
-			defer fmt.Println("doWork exited")
-			defer close(terminated)
-			for {
-				select {
-				case s := <-stringStream:
-					// 模拟一些操作
-					fmt.Printf("Reveived: %s\n", s)
-				case <-done:
-					return
-				}
-			}
-		}()
-
-		return terminated
-	}
-
 	done := make(chan interface{})
 	terminated := doWork(done, nil)
 
@@ -38,4 +19,23 @@ func main() {
 	// 在关闭前阻塞
 	<-terminated
 	fmt.Println("done")
+}
+
+func doWork(done <-chan interface{}, stringStream <-chan string) <-chan interface{} {
+	terminated := make(chan interface{})
+	go func() {
+		defer fmt.Println("doWork exited")
+		defer close(terminated)
+		for {
+			select {
+			case s := <-stringStream:
+				// 模拟一些操作
+				fmt.Printf("Reveived: %s\n", s)
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	return terminated
 }
