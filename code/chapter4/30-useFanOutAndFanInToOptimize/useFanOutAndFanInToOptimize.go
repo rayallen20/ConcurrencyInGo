@@ -9,122 +9,6 @@ import (
 )
 
 func main() {
-	repeatFn := func(done <-chan interface{}, fn func() interface{}) <-chan interface{} {
-		valueStream := make(chan interface{})
-
-		go func() {
-			defer close(valueStream)
-
-			for {
-				select {
-				case <-done:
-					return
-				case valueStream <- fn():
-				}
-			}
-		}()
-
-		return valueStream
-	}
-
-	take := func(done <-chan interface{}, valueStream <-chan interface{}, num int) <-chan interface{} {
-		takeStream := make(chan interface{})
-
-		go func() {
-			defer close(takeStream)
-
-			for i := 0; i < num; i++ {
-				select {
-				case <-done:
-					return
-				case takeStream <- <-valueStream:
-				}
-			}
-		}()
-
-		return takeStream
-	}
-
-	toInt := func(done <-chan interface{}, valueStream <-chan interface{}) <-chan int {
-		intStream := make(chan int)
-
-		go func() {
-			defer close(intStream)
-
-			for value := range valueStream {
-				select {
-				case <-done:
-					return
-				case intStream <- value.(int):
-				}
-			}
-		}()
-
-		return intStream
-	}
-
-	primeFinder := func(done <-chan interface{}, intStream <-chan int) <-chan interface{} {
-		primeStream := make(chan interface{})
-
-		go func() {
-			defer close(primeStream)
-
-			for integer := range intStream {
-				// determine whether integer is prime
-				integer -= 1
-				prime := true
-				for divisor := integer - 1; divisor > 1; divisor-- {
-					if integer%divisor == 0 {
-						prime = false
-						break
-					}
-				}
-
-				if prime {
-					select {
-					case <-done:
-						return
-					case primeStream <- integer:
-					}
-				}
-			}
-		}()
-
-		return primeStream
-	}
-
-	fanIn := func(done <-chan interface{}, channels ...<-chan interface{}) <-chan interface{} {
-		var wg sync.WaitGroup
-		multiplexedStream := make(chan interface{})
-
-		multiplex := func(c <-chan interface{}) {
-			defer wg.Done()
-			for i := range c {
-				select {
-				case <-done:
-					return
-				case multiplexedStream <- i:
-				}
-			}
-		}
-
-		// 从所有channel中取值
-		wg.Add(len(channels))
-		for _, c := range channels {
-			go multiplex(c)
-		}
-
-		// 等待所有数据汇总完毕
-		go func() {
-			wg.Wait()
-			close(multiplexedStream)
-		}()
-
-		return multiplexedStream
-	}
-
-	randFn := func() interface{} { return rand.Intn(50000000) }
-
 	start := time.Now()
 
 	done := make(chan interface{})
@@ -146,4 +30,122 @@ func main() {
 	}
 
 	fmt.Printf("Search took: %v\n", time.Since(start))
+}
+
+func repeatFn(done <-chan interface{}, fn func() interface{}) <-chan interface{} {
+	valueStream := make(chan interface{})
+
+	go func() {
+		defer close(valueStream)
+
+		for {
+			select {
+			case <-done:
+				return
+			case valueStream <- fn():
+			}
+		}
+	}()
+
+	return valueStream
+}
+
+func take(done <-chan interface{}, valueStream <-chan interface{}, num int) <-chan interface{} {
+	takeStream := make(chan interface{})
+
+	go func() {
+		defer close(takeStream)
+
+		for i := 0; i < num; i++ {
+			select {
+			case <-done:
+				return
+			case takeStream <- <-valueStream:
+			}
+		}
+	}()
+
+	return takeStream
+}
+
+func toInt(done <-chan interface{}, valueStream <-chan interface{}) <-chan int {
+	intStream := make(chan int)
+
+	go func() {
+		defer close(intStream)
+
+		for value := range valueStream {
+			select {
+			case <-done:
+				return
+			case intStream <- value.(int):
+			}
+		}
+	}()
+
+	return intStream
+}
+
+func primeFinder(done <-chan interface{}, intStream <-chan int) <-chan interface{} {
+	primeStream := make(chan interface{})
+
+	go func() {
+		defer close(primeStream)
+
+		for integer := range intStream {
+			// determine whether integer is prime
+			integer -= 1
+			prime := true
+			for divisor := integer - 1; divisor > 1; divisor-- {
+				if integer%divisor == 0 {
+					prime = false
+					break
+				}
+			}
+
+			if prime {
+				select {
+				case <-done:
+					return
+				case primeStream <- integer:
+				}
+			}
+		}
+	}()
+
+	return primeStream
+}
+
+func randFn() interface{} {
+	return rand.Intn(50000000)
+}
+
+func fanIn(done <-chan interface{}, channels ...<-chan interface{}) <-chan interface{} {
+	var wg sync.WaitGroup
+	multiplexedStream := make(chan interface{})
+
+	multiplex := func(c <-chan interface{}) {
+		defer wg.Done()
+		for i := range c {
+			select {
+			case <-done:
+				return
+			case multiplexedStream <- i:
+			}
+		}
+	}
+
+	// 从所有channel中取值
+	wg.Add(len(channels))
+	for _, c := range channels {
+		go multiplex(c)
+	}
+
+	// 等待所有数据汇总完毕
+	go func() {
+		wg.Wait()
+		close(multiplexedStream)
+	}()
+
+	return multiplexedStream
 }
