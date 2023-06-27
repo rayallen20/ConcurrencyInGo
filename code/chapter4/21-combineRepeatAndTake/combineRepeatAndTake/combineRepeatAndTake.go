@@ -5,15 +5,9 @@ import "fmt"
 func main() {
 	done := make(chan interface{})
 	defer close(done)
-
-	var message string
-
-	for token := range toString(done, take(done, repeat(done, "I", "am."), 5)) {
-		message += token
-		message += " "
+	for num := range take(done, repeat(done, 1), 10) {
+		fmt.Printf("%v ", num)
 	}
-
-	fmt.Printf("message = %s\n", message)
 }
 
 func repeat(done <-chan interface{}, values ...interface{}) <-chan interface{} {
@@ -51,22 +45,4 @@ func take(done <-chan interface{}, valueStream <-chan interface{}, num int) <-ch
 	}()
 
 	return takeStream
-}
-
-func toString(done <-chan interface{}, valueStream <-chan interface{}) <-chan string {
-	stringStream := make(chan string)
-
-	go func() {
-		defer close(stringStream)
-
-		for value := range valueStream {
-			select {
-			case <-done:
-				return
-			case stringStream <- value.(string):
-			}
-		}
-	}()
-
-	return stringStream
 }
